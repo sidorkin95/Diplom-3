@@ -1,0 +1,128 @@
+import allure
+from selenium.webdriver.support import expected_conditions as EC
+
+from locators.feed_page_locators import FeedPageLocators
+from pages.base_page import BasePage
+from urls import Urls
+
+
+def _normalize_order_number(order_number: str) -> str:
+    return order_number.strip().lstrip("#").lstrip("0") or "0"
+
+
+class FeedPage(BasePage):
+
+    @allure.step("Дождаться загрузки ленты заказов")
+    def wait_feed_loaded(self):
+        self.wait_for_visible(FeedPageLocators.page_title)
+        self.wait_until(EC.visibility_of_element_located(FeedPageLocators.order_link))
+
+    @allure.step("Открыть первый заказ в ленте")
+    def open_first_order(self):
+        self.click(FeedPageLocators.first_order_link)
+        self._wait_order_details_modal()
+
+    @allure.step("Дождаться модального окна с деталями заказа")
+    def _wait_order_details_modal(self):
+        self.wait_until(lambda _: self._is_order_details_page_open(), timeout=15)
+        self.wait_for_visible(FeedPageLocators.order_modal_composition, timeout=20)
+
+    def _is_order_details_page_open(self):
+        url = self.get_current_url().rstrip("/")
+        return url.endswith("/feed") is False and "/feed/" in url
+
+    @allure.step("Получить счётчик «Выполнено за всё время»")
+    def get_completed_all_time_count(self):
+        return int(self.get_text(FeedPageLocators.completed_all_time_value))
+
+    @allure.step("Получить счётчик «Выполнено за сегодня»")
+    def get_completed_today_count(self):
+        return int(self.get_text(FeedPageLocators.completed_today_value))
+
+    def get_order_numbers_in_feed(self):
+        return [
+            element.text.strip().lstrip("#")
+            for element in self.find_elements(FeedPageLocators.order_numbers_in_feed)
+        ]
+
+    def get_in_progress_order_numbers(self):
+        return [
+            element.text.strip().lstrip("#")
+            for element in self.find_elements(FeedPageLocators.in_progress_orders)
+        ]
+
+    @allure.step("Модальное окно заказа открыто")
+    def is_order_modal_open(self):
+        return self.is_visible(FeedPageLocators.order_modal_composition)
+
+    @allure.step("Лента заказов открыта")
+    def is_feed_page_open(self):
+        return self.is_current_url(Urls.FEED_PAGE) and self.is_visible(
+            FeedPageLocators.page_title
+        )
+
+    @allure.step("Заказ {order_number} есть в ленте")
+    def is_order_in_feed(self, order_number):
+        target = _normalize_order_number(order_number)
+        return any(
+            _normalize_order_number(number) == target
+            for number in self.get_order_numbers_in_feed()
+        )
+
+    @allure.step("Заказ {order_number} в разделе «В работе»")
+    def is_order_in_progress(self, order_number):
+        target = _normalize_order_number(order_number)
+        return any(
+            _normalize_order_number(number) == target
+            for number in self.get_in_progress_order_numbers()
+        )
+
+    @allure.step("Дождаться заказа {order_number} в ленте")
+    def wait_order_in_feed(self, order_number, timeout=15):
+        target = _normalize_order_number(order_number)
+        self.wait_until(
+            lambda _: any(
+                _normalize_order_number(number) == target
+                for number in self.get_order_numbers_in_feed()
+            ),
+            timeout=timeout,
+            message=f"Заказ {order_number} не появился в ленте",
+        )
+
+    @allure.step("Дождаться заказа {order_number} в разделе «В работе»")
+    def wait_order_in_progress(self, order_number, timeout=30):
+        target = _normalize_order_number(order_number)
+        self.wait_order_in_feed(order_number, timeout=timeout)
+        self.wait_until(
+            lambda _: any(
+                _normalize_order_number(number) == target
+                for number in self.get_in_progress_order_numbers()
+            ),
+            timeout=timeout,
+            message=f"Заказ {order_number} не появился в разделе «В работе»",
+        )
+
+    @allure.step("Дождаться увеличения счётчика «Выполнено за всё время»")
+    def wait_completed_all_time_increased(self, previous_count, timeout=30):
+        self.wait_until(
+            lambda _: self.get_completed_all_time_count() > previous_count,
+            timeout=timeout,
+            message="Счётчик «Выполнено за всё время» не увеличился",
+        )
+
+    @allure.step("Дождаться увеличения счётчика «Выполнено за сегодня»")
+    def wait_completed_today_increased(self, previous_count, timeout=30):
+        self.wait_until(
+            lambda _: self.get_completed_today_count() > previous_count,
+            timeout=timeout,
+            message="Счётчик «Выполнено за сегодня» не увеличился",
+        )
+
+    @allure.step("Счётчик «Выполнено за всё время» увеличился")
+    def is_completed_all_time_increased(self, previous_count):
+        return self.get_completed_all_time_count() > previous_count
+
+    @allure.step("Счётчик «Выполнено за сегодня» увеличился")
+    def is_completed_today_increased(self, previous_count):
+        return self.get_completed_today_count() > previous_count
+    
