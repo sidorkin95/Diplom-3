@@ -3,6 +3,7 @@ from selenium.webdriver.common.by import By
 
 class MainPageLocators:
     page_title = [By.XPATH, "//h1[text()='Соберите бургер']"]
+    login_button = [By.XPATH, "//button[text()='Войти в аккаунт']"]
     place_order_button = [By.XPATH, "//button[text()='Оформить заказ']"]
 
     constructor_link = [By.XPATH, '//p[text()="Конструктор"]/parent::a']
