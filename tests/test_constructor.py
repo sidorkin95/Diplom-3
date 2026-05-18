@@ -1,10 +1,7 @@
 import allure
 
-from locators.feed_page_locators import FeedPageLocators
-from locators.main_page_locators import MainPageLocators
 from pages.feed_page import FeedPage
 from pages.main_page import MainPage
-from urls import Urls
 
 
 @allure.story("Конструктор")
@@ -13,29 +10,25 @@ class TestConstructor:
     @allure.title("Переход в конструктор по кнопке в шапке")
     @allure.description("Из ленты заказов возвращаемся в конструктор")
     def test_navigate_to_constructor(self, open_main_page):
-        driver = open_main_page
-        main_page = MainPage(driver)
-        feed_page = FeedPage(driver)
+        main_page = MainPage(open_main_page)
+        feed_page = FeedPage(open_main_page)
 
         main_page.go_to_order_feed()
         feed_page.wait_feed_loaded()
         main_page.go_to_constructor()
 
-        assert main_page.is_on_main_page()
-        assert main_page.is_visible(MainPageLocators.page_title)
+        assert main_page.is_constructor_open()
 
     @allure.title("Переход в ленту заказов по кнопке в шапке")
     @allure.description("По кнопке «Лента заказов» открывается страница ленты")
     def test_navigate_to_order_feed(self, open_main_page):
-        driver = open_main_page
-        main_page = MainPage(driver)
-        feed_page = FeedPage(driver)
+        main_page = MainPage(open_main_page)
+        feed_page = FeedPage(open_main_page)
 
         main_page.go_to_order_feed()
         feed_page.wait_feed_loaded()
 
-        assert driver.current_url == Urls.FEED_PAGE
-        assert feed_page.is_visible(FeedPageLocators.page_title)
+        assert feed_page.is_feed_page_open()
 
     @allure.title("Клик по ингредиенту открывает модальное окно с деталями")
     @allure.description("При клике на ингредиент появляется окно «Детали ингредиента»")
@@ -43,7 +36,7 @@ class TestConstructor:
         main_page = MainPage(open_main_page)
         main_page.click_ingredient()
 
-        assert main_page.is_visible(MainPageLocators.ingredient_modal_title)
+        assert main_page.is_ingredient_modal_open()
 
     @allure.title("Модальное окно ингредиента закрывается по крестику")
     @allure.description("После клика по крестику окно деталей закрывается")
@@ -51,9 +44,8 @@ class TestConstructor:
         main_page = MainPage(open_main_page)
         main_page.click_ingredient()
         main_page.close_modal()
-        main_page.wait_for_invisible(MainPageLocators.ingredient_modal_title)
 
-        assert not main_page.is_visible(MainPageLocators.ingredient_modal_title)
+        assert main_page.is_ingredient_modal_closed()
 
     @allure.title("Счётчик ингредиента увеличивается при добавлении в заказ")
     @allure.description("После перетаскивания ингредиента счётчик становится больше")
@@ -73,3 +65,4 @@ class TestConstructor:
         main_page.place_order()
 
         assert main_page.is_order_placed()
+        

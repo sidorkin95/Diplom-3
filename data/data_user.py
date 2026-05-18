@@ -25,15 +25,21 @@ def _api_url(path):
 
 
 def register_user(email=None, password=None, name=None):
+    """Создаёт пользователя через API. Возвращает None при ошибке."""
     payload = {
         "email": email or unique_email(),
         "password": password or unique_password(),
         "name": name or unique_name(),
     }
     response = requests.post(_api_url(Urls.API_REGISTER), json=payload, timeout=30)
-    response.raise_for_status()
+
+    if not response.ok:
+        return None
+
     body = response.json()
-    assert body.get("success") is True, body
+    if not body.get("success"):
+        return None
+
     return {
         "email": payload["email"],
         "password": payload["password"],
@@ -44,10 +50,12 @@ def register_user(email=None, password=None, name=None):
 
 
 def delete_user(access_token):
+    """Удаляет пользователя. Возвращает True/False."""
+    if not access_token:
+        return False
     response = requests.delete(
         _api_url(Urls.API_USER),
         headers={"Authorization": access_token},
         timeout=30,
     )
-    if response.status_code not in (200, 202):
-        response.raise_for_status()
+    return response.status_code in (200, 202)

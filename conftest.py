@@ -1,12 +1,10 @@
 import os
 
 import pytest
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
 
 from data.data_user import delete_user, register_user
 from driver_factory import DriverFactory
-from locators.main_page_locators import MainPageLocators
+from pages.main_page import MainPage
 from urls import Urls
 
 
@@ -39,31 +37,27 @@ def driver(request):
 
 @pytest.fixture()
 def open_main_page(driver):
-    driver.get(Urls.MAIN_PAGE)
+    main_page = MainPage(driver)
+    main_page.open_main_page()
     return driver
 
 
 @pytest.fixture()
 def registered_user():
     user = register_user()
+    if user is None:
+        pytest.fail("Не удалось создать пользователя через API")
     yield user
     delete_user(user["access_token"])
 
 
 @pytest.fixture()
 def logged_in_driver(driver, registered_user):
-    driver.get(Urls.MAIN_PAGE)
-    driver.execute_script(
-        "window.localStorage.setItem('accessToken', arguments[0]);",
+    main_page = MainPage(driver)
+    main_page.open_main_page()
+    main_page.authorize_with_tokens(
         registered_user["access_token"],
-    )
-    driver.execute_script(
-        "window.localStorage.setItem('refreshToken', arguments[0]);",
         registered_user["refresh_token"],
-    )
-    driver.refresh()
-    WebDriverWait(driver, 15).until(
-        EC.element_to_be_clickable(MainPageLocators.place_order_button)
     )
     return driver
 
@@ -79,3 +73,4 @@ def pytest_sessionfinish(session, exitstatus):
     env_path = os.path.join(alluredir, "environment.properties")
     with open(env_path, "w", encoding="utf-8") as file:
         file.write(f"BASE_URL={Urls.BASE_URL}\n")
+        

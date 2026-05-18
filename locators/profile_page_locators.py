@@ -2,7 +2,6 @@ from selenium.webdriver.common.by import By
 
 
 class ProfilePageLocators:
-    profile_tab = [By.LINK_TEXT, "Профиль"]
     order_history_tab = [By.LINK_TEXT, "История заказов"]
     order_history_tab_active = [
         By.XPATH,
